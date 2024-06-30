@@ -20,10 +20,12 @@
 package org.neo4j.gds.procedures;
 
 import org.neo4j.gds.api.AlgorithmMetaDataSetter;
+import org.neo4j.gds.api.ProcedureReturnColumns;
 import org.neo4j.gds.applications.ApplicationsFacade;
 import org.neo4j.gds.applications.algorithms.machinery.AlgorithmProcessingTemplate;
 import org.neo4j.gds.applications.algorithms.machinery.MemoryGuard;
 import org.neo4j.gds.applications.algorithms.machinery.RequestScopedDependencies;
+import org.neo4j.gds.applications.algorithms.machinery.WriteContext;
 import org.neo4j.gds.applications.graphstorecatalog.CatalogBusinessFacade;
 import org.neo4j.gds.configuration.DefaultsConfiguration;
 import org.neo4j.gds.configuration.LimitsConfiguration;
@@ -36,8 +38,7 @@ import org.neo4j.gds.procedures.algorithms.AlgorithmsProcedureFacade;
 import org.neo4j.gds.procedures.algorithms.configuration.ConfigurationCreator;
 import org.neo4j.gds.procedures.algorithms.configuration.ConfigurationParser;
 import org.neo4j.gds.procedures.catalog.CatalogProcedureFacade;
-import org.neo4j.gds.procedures.community.CommunityProcedureFacade;
-import org.neo4j.gds.procedures.embeddings.NodeEmbeddingsProcedureFacade;
+import org.neo4j.gds.procedures.embeddings.OldNodeEmbeddingsProcedureFacade;
 import org.neo4j.gds.procedures.misc.MiscAlgorithmsProcedureFacade;
 import org.neo4j.gds.procedures.pipelines.PipelinesProcedureFacade;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -52,9 +53,8 @@ public class GraphDataScienceProcedures {
 
     private final AlgorithmsProcedureFacade algorithmsProcedureFacade;
     private final CatalogProcedureFacade catalogProcedureFacade;
-    private final CommunityProcedureFacade communityProcedureFacade;
     private final MiscAlgorithmsProcedureFacade miscAlgorithmsProcedureFacade;
-    private final NodeEmbeddingsProcedureFacade nodeEmbeddingsProcedureFacade;
+    private final OldNodeEmbeddingsProcedureFacade oldNodeEmbeddingsProcedureFacade;
     private final PipelinesProcedureFacade pipelinesProcedureFacade;
 
     private final DeprecatedProceduresMetricService deprecatedProceduresMetricService;
@@ -66,18 +66,16 @@ public class GraphDataScienceProcedures {
         Log log,
         AlgorithmsProcedureFacade algorithmsProcedureFacade,
         CatalogProcedureFacade catalogProcedureFacade,
-        CommunityProcedureFacade communityProcedureFacade,
         MiscAlgorithmsProcedureFacade miscAlgorithmsProcedureFacade,
-        NodeEmbeddingsProcedureFacade nodeEmbeddingsProcedureFacade,
+        OldNodeEmbeddingsProcedureFacade oldNodeEmbeddingsProcedureFacade,
         PipelinesProcedureFacade pipelinesProcedureFacade,
         DeprecatedProceduresMetricService deprecatedProceduresMetricService
     ) {
         this.log = log;
         this.algorithmsProcedureFacade = algorithmsProcedureFacade;
         this.catalogProcedureFacade = catalogProcedureFacade;
-        this.communityProcedureFacade = communityProcedureFacade;
         this.miscAlgorithmsProcedureFacade = miscAlgorithmsProcedureFacade;
-        this.nodeEmbeddingsProcedureFacade = nodeEmbeddingsProcedureFacade;
+        this.oldNodeEmbeddingsProcedureFacade = oldNodeEmbeddingsProcedureFacade;
         this.pipelinesProcedureFacade = pipelinesProcedureFacade;
         this.deprecatedProceduresMetricService = deprecatedProceduresMetricService;
     }
@@ -95,10 +93,12 @@ public class GraphDataScienceProcedures {
         AlgorithmMetaDataSetter algorithmMetaDataSetter,
         KernelTransaction kernelTransaction,
         RequestScopedDependencies requestScopedDependencies,
+        WriteContext writeContext,
+        ProcedureReturnColumns procedureReturnColumns,
         CatalogProcedureFacadeFactory catalogProcedureFacadeFactory,
         GraphDatabaseService graphDatabaseService,
         Transaction transaction,
-        AlgorithmFacadeBuilderFactory algorithmFacadeBuilderFactory,
+        AlgorithmProcedureFacadeBuilderFactory algorithmProcedureFacadeBuilderFactory,
         DeprecatedProceduresMetricService deprecatedProceduresMetricService
     ) {
         var configurationParser = new ConfigurationParser(defaultsConfiguration, limitsConfiguration);
@@ -116,7 +116,8 @@ public class GraphDataScienceProcedures {
             memoryGuard,
             algorithmMetricsService,
             projectionMetricsService,
-            requestScopedDependencies
+            requestScopedDependencies,
+            writeContext
         );
 
         var catalogProcedureFacade = catalogProcedureFacadeFactory.createCatalogProcedureFacade(
@@ -124,26 +125,30 @@ public class GraphDataScienceProcedures {
             graphDatabaseService,
             kernelTransaction,
             transaction,
-            requestScopedDependencies
+            requestScopedDependencies,
+            writeContext,
+            procedureReturnColumns
         );
 
-        var algorithmFacadeBuilder = algorithmFacadeBuilderFactory.create(
+        var algorithmProcedureFacadeBuilder = algorithmProcedureFacadeBuilderFactory.create(
             configurationParser,
             configurationCreator,
             requestScopedDependencies,
             kernelTransaction,
             graphDatabaseService,
             algorithmMetaDataSetter,
-            applicationsFacade
+            applicationsFacade,
+            writeContext,
+            procedureReturnColumns
         );
 
-        var centralityProcedureFacade = algorithmFacadeBuilder.createCentralityProcedureFacade();
-        var communityProcedureFacade = algorithmFacadeBuilder.createCommunityProcedureFacade();
-        var oldCommunityProcedureFacade = algorithmFacadeBuilder.createOldCommunityProcedureFacade();
-        var miscAlgorithmsProcedureFacade = algorithmFacadeBuilder.createMiscellaneousProcedureFacade();
-        var nodeEmbeddingsProcedureFacade = algorithmFacadeBuilder.createNodeEmbeddingsProcedureFacade();
-        var pathFindingProcedureFacade = algorithmFacadeBuilder.createPathFindingProcedureFacade();
-        var similarityProcedureFacade = algorithmFacadeBuilder.createSimilarityProcedureFacade();
+        var centralityProcedureFacade = algorithmProcedureFacadeBuilder.createCentralityProcedureFacade();
+        var communityProcedureFacade = algorithmProcedureFacadeBuilder.createCommunityProcedureFacade();
+        var miscAlgorithmsProcedureFacade = algorithmProcedureFacadeBuilder.createMiscellaneousProcedureFacade();
+        var nodeEmbeddingsProcedureFacade = algorithmProcedureFacadeBuilder.createNodeEmbeddingsProcedureFacade();
+        var oldNodeEmbeddingsProcedureFacade = algorithmProcedureFacadeBuilder.createOldNodeEmbeddingsProcedureFacade();
+        var pathFindingProcedureFacade = algorithmProcedureFacadeBuilder.createPathFindingProcedureFacade();
+        var similarityProcedureFacade = algorithmProcedureFacadeBuilder.createSimilarityProcedureFacade();
 
         var pipelinesProcedureFacade = new PipelinesProcedureFacade(requestScopedDependencies.getUser());
 
@@ -151,9 +156,9 @@ public class GraphDataScienceProcedures {
             .with(catalogProcedureFacade)
             .with(centralityProcedureFacade)
             .with(communityProcedureFacade)
-            .with(oldCommunityProcedureFacade)
             .with(miscAlgorithmsProcedureFacade)
             .with(nodeEmbeddingsProcedureFacade)
+            .with(oldNodeEmbeddingsProcedureFacade)
             .with(pathFindingProcedureFacade)
             .with(pipelinesProcedureFacade)
             .with(similarityProcedureFacade)
@@ -173,16 +178,12 @@ public class GraphDataScienceProcedures {
         return catalogProcedureFacade;
     }
 
-    public CommunityProcedureFacade community() {
-        return communityProcedureFacade;
-    }
-
     public MiscAlgorithmsProcedureFacade miscellaneousAlgorithms() {
         return miscAlgorithmsProcedureFacade;
     }
 
-    public NodeEmbeddingsProcedureFacade nodeEmbeddings() {
-        return nodeEmbeddingsProcedureFacade;
+    public OldNodeEmbeddingsProcedureFacade oldNodeEmbeddings() {
+        return oldNodeEmbeddingsProcedureFacade;
     }
 
     public PipelinesProcedureFacade pipelines() {

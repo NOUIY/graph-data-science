@@ -47,9 +47,14 @@ import org.neo4j.gds.modularityoptimization.ModularityOptimizationStreamConfig;
 import org.neo4j.gds.scc.SccStreamConfig;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientResult;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientStreamConfig;
+import org.neo4j.gds.triangle.TriangleCountBaseConfig;
+import org.neo4j.gds.triangle.TriangleCountResult;
+import org.neo4j.gds.triangle.TriangleCountStreamConfig;
+import org.neo4j.gds.triangle.TriangleStreamResult;
 import org.neo4j.gds.wcc.WccStreamConfig;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.ApproximateMaximumKCut;
 import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.Conductance;
@@ -63,6 +68,8 @@ import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTra
 import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.Modularity;
 import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.ModularityOptimization;
 import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.SCC;
+import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.TriangleCount;
+import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.Triangles;
 import static org.neo4j.gds.applications.algorithms.metadata.LabelForProgressTracking.WCC;
 
 public class CommunityAlgorithmsStreamModeBusinessFacade {
@@ -267,6 +274,38 @@ public class CommunityAlgorithmsStreamModeBusinessFacade {
             SCC,
             estimationFacade::scc,
             graph -> algorithms.scc(graph, configuration),
+            Optional.empty(),
+            resultBuilder
+        );
+    }
+
+    public <RESULT> RESULT triangleCount(
+        GraphName graphName,
+        TriangleCountStreamConfig configuration,
+        ResultBuilder<TriangleCountStreamConfig, TriangleCountResult, RESULT, Void> resultBuilder
+    ) {
+        return algorithmProcessingTemplate.processAlgorithm(
+            graphName,
+            configuration,
+            TriangleCount,
+            estimationFacade::triangleCount,
+            graph -> algorithms.triangleCount(graph, configuration),
+            Optional.empty(),
+            resultBuilder
+        );
+    }
+
+    public <RESULT> RESULT triangles(
+        GraphName graphName,
+        TriangleCountBaseConfig configuration,
+        ResultBuilder<TriangleCountBaseConfig, Stream<TriangleStreamResult>, RESULT, Void> resultBuilder
+    ) {
+        return algorithmProcessingTemplate.processAlgorithm(
+            graphName,
+            configuration,
+            Triangles,
+            estimationFacade::triangles,
+            graph -> algorithms.triangles(graph, configuration),
             Optional.empty(),
             resultBuilder
         );

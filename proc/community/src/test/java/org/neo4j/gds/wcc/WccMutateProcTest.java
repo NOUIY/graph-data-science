@@ -48,9 +48,9 @@ import org.neo4j.gds.api.User;
 import org.neo4j.gds.api.nodeproperties.ValueType;
 import org.neo4j.gds.api.schema.GraphSchema;
 import org.neo4j.gds.applications.ApplicationsFacade;
-import org.neo4j.gds.applications.algorithms.machinery.AlgorithmEstimationTemplate;
 import org.neo4j.gds.applications.algorithms.machinery.MemoryGuard;
 import org.neo4j.gds.applications.algorithms.machinery.RequestScopedDependencies;
+import org.neo4j.gds.applications.algorithms.machinery.WriteContext;
 import org.neo4j.gds.catalog.GraphProjectProc;
 import org.neo4j.gds.catalog.GraphWriteNodePropertiesProc;
 import org.neo4j.gds.compat.GraphDatabaseApiProxy;
@@ -69,7 +69,6 @@ import org.neo4j.gds.core.utils.progress.TaskRegistryFactory;
 import org.neo4j.gds.core.utils.warnings.EmptyUserLogRegistryFactory;
 import org.neo4j.gds.extension.Neo4jGraph;
 import org.neo4j.gds.logging.Log;
-import org.neo4j.gds.memest.DatabaseGraphStoreEstimationService;
 import org.neo4j.gds.metrics.PassthroughExecutionMetricRegistrar;
 import org.neo4j.gds.metrics.algorithms.AlgorithmMetricsService;
 import org.neo4j.gds.metrics.procedures.DeprecatedProceduresMetricService;
@@ -588,9 +587,8 @@ class WccMutateProcTest extends BaseProcTest {
             .with(new User(getUsername(), false))
             .with(EmptyUserLogRegistryFactory.INSTANCE)
             .build();
-        var algorithmEstimationTemplate = new AlgorithmEstimationTemplate(graphStoreCatalogService, new DatabaseGraphStoreEstimationService(
-            GraphLoaderContext.NULL_CONTEXT, requestScopedDependencies.getUser()), requestScopedDependencies);
-        var applicationsFacade = ApplicationsFacade.create(logMock, Optional.empty(), Optional.empty(), graphStoreCatalogService, MemoryGuard.DISABLED, new AlgorithmMetricsService(new PassthroughExecutionMetricRegistrar()), new ProjectionMetricsService(new PassthroughExecutionMetricRegistrar()), requestScopedDependencies);
+        var applicationsFacade = ApplicationsFacade.create(logMock, Optional.empty(), Optional.empty(), graphStoreCatalogService, MemoryGuard.DISABLED, new AlgorithmMetricsService(new PassthroughExecutionMetricRegistrar()), new ProjectionMetricsService(new PassthroughExecutionMetricRegistrar()), requestScopedDependencies,
+            WriteContext.builder().build());
         var configurationParser = new ConfigurationParser(DefaultsConfiguration.Instance, LimitsConfiguration.Instance);
         var configurationCreator = new ConfigurationCreator(configurationParser, null, requestScopedDependencies.getUser());
         var genericStub = GenericStub.create(
@@ -604,6 +602,7 @@ class WccMutateProcTest extends BaseProcTest {
         var communityProcedureFacade = CommunityProcedureFacade.create(
             genericStub,
             applicationsFacade,
+            null,
             ProcedureReturnColumns.EMPTY,
             null,
             null,

@@ -74,6 +74,7 @@ final class MutateModeAlgorithmLibrary {
             case DFS -> CanonicalProcedureName.parse("gds.dfs");
             case Dijkstra -> CanonicalProcedureName.parse("gds.shortestPath.dijkstra");
             case EigenVector -> CanonicalProcedureName.parse("gds.eigenvector");
+            case FastRP -> CanonicalProcedureName.parse("gds.fastRP");
             case FilteredKNN -> CanonicalProcedureName.parse("gds.knn.filtered");
             case FilteredNodeSimilarity -> CanonicalProcedureName.parse("gds.nodeSimilarity.filtered");
             case HarmonicCentrality -> CanonicalProcedureName.parse("gds.closeness.harmonic");
@@ -97,6 +98,8 @@ final class MutateModeAlgorithmLibrary {
             case SpanningTree -> CanonicalProcedureName.parse("gds.spanningTree");
             case SteinerTree -> CanonicalProcedureName.parse("gds.steinerTree");
             case TopologicalSort -> null;
+            case TriangleCount -> CanonicalProcedureName.parse("gds.triangleCount");
+            case Triangles -> null;
             case WCC -> CanonicalProcedureName.parse("gds.wcc");
             case Yens -> CanonicalProcedureName.parse("gds.shortestPath.yens");
         };

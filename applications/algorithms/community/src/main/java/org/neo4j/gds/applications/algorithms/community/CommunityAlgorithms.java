@@ -32,6 +32,7 @@ import org.neo4j.gds.conductance.Conductance;
 import org.neo4j.gds.conductance.ConductanceBaseConfig;
 import org.neo4j.gds.conductance.ConductanceResult;
 import org.neo4j.gds.config.AlgoBaseConfig;
+import org.neo4j.gds.config.ConcurrencyConfig;
 import org.neo4j.gds.core.concurrency.DefaultPool;
 import org.neo4j.gds.core.concurrency.ParallelUtil;
 import org.neo4j.gds.core.utils.paged.dss.DisjointSetStruct;
@@ -67,16 +68,22 @@ import org.neo4j.gds.modularityoptimization.ModularityOptimizationResult;
 import org.neo4j.gds.scc.Scc;
 import org.neo4j.gds.scc.SccCommonBaseConfig;
 import org.neo4j.gds.termination.TerminationFlag;
+import org.neo4j.gds.triangle.IntersectingTriangleCount;
 import org.neo4j.gds.triangle.IntersectingTriangleCountFactory;
 import org.neo4j.gds.triangle.LocalClusteringCoefficient;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientBaseConfig;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientResult;
+import org.neo4j.gds.triangle.TriangleCountBaseConfig;
+import org.neo4j.gds.triangle.TriangleCountResult;
+import org.neo4j.gds.triangle.TriangleStream;
+import org.neo4j.gds.triangle.TriangleStreamResult;
 import org.neo4j.gds.wcc.Wcc;
 import org.neo4j.gds.wcc.WccBaseConfig;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.neo4j.gds.modularityoptimization.ModularityOptimization.K1COLORING_MAX_ITERATIONS;
 
@@ -364,6 +371,35 @@ public class CommunityAlgorithms {
         var algorithm = new Scc(graph, progressTracker, terminationFlag);
 
         return algorithmMachinery.runAlgorithmsAndManageProgressTracker(algorithm, progressTracker, true);
+    }
+
+    TriangleCountResult triangleCount(Graph graph, TriangleCountBaseConfig configuration) {
+        var task = Tasks.leaf(LabelForProgressTracking.TriangleCount.value, graph.nodeCount());
+        var progressTracker = progressTrackerCreator.createProgressTracker(configuration, task);
+
+        var parameters = configuration.toParameters();
+
+        var algorithm = IntersectingTriangleCount.create(
+            graph,
+            parameters.concurrency(),
+            parameters.maxDegree(),
+            DefaultPool.INSTANCE,
+            progressTracker,
+            terminationFlag
+        );
+
+        return algorithmMachinery.runAlgorithmsAndManageProgressTracker(algorithm, progressTracker, true);
+    }
+
+    Stream<TriangleStreamResult> triangles(Graph graph, ConcurrencyConfig configuration) {
+        var algorithm = TriangleStream.create(
+            graph,
+            DefaultPool.INSTANCE,
+            configuration.concurrency(),
+            terminationFlag
+        );
+
+        return algorithm.compute();
     }
 
     DisjointSetStruct wcc(Graph graph, WccBaseConfig configuration) {

@@ -43,6 +43,7 @@ public enum Algorithm {
     DFS,
     Dijkstra,
     EigenVector,
+    FastRP,
     FilteredKNN,
     FilteredNodeSimilarity,
     HarmonicCentrality,
@@ -66,6 +67,8 @@ public enum Algorithm {
     SpanningTree,
     SteinerTree,
     TopologicalSort,
+    TriangleCount,
+    Triangles,
     WCC,
     Yens;
 }

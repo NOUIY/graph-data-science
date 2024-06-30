@@ -19,6 +19,7 @@
  */
 package org.neo4j.gds.procedures.algorithms.community;
 
+import org.neo4j.gds.api.CloseableResourceRegistry;
 import org.neo4j.gds.api.ProcedureReturnColumns;
 import org.neo4j.gds.applications.ApplicationsFacade;
 import org.neo4j.gds.applications.algorithms.community.CommunityAlgorithmsEstimationModeBusinessFacade;
@@ -61,6 +62,7 @@ import org.neo4j.gds.procedures.algorithms.community.stubs.LeidenMutateStub;
 import org.neo4j.gds.procedures.algorithms.community.stubs.LouvainMutateStub;
 import org.neo4j.gds.procedures.algorithms.community.stubs.ModularityOptimizationMutateStub;
 import org.neo4j.gds.procedures.algorithms.community.stubs.SccMutateStub;
+import org.neo4j.gds.procedures.algorithms.community.stubs.TriangleCountMutateStub;
 import org.neo4j.gds.procedures.algorithms.community.stubs.WccMutateStub;
 import org.neo4j.gds.procedures.algorithms.runners.AlgorithmExecutionScaffolding;
 import org.neo4j.gds.procedures.algorithms.runners.EstimationModeRunner;
@@ -73,6 +75,11 @@ import org.neo4j.gds.scc.SccWriteConfig;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientStatsConfig;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientStreamConfig;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientWriteConfig;
+import org.neo4j.gds.triangle.TriangleCountBaseConfig;
+import org.neo4j.gds.triangle.TriangleCountStatsConfig;
+import org.neo4j.gds.triangle.TriangleCountStreamConfig;
+import org.neo4j.gds.triangle.TriangleCountWriteConfig;
+import org.neo4j.gds.triangle.TriangleStreamResult;
 import org.neo4j.gds.wcc.WccStatsConfig;
 import org.neo4j.gds.wcc.WccStreamConfig;
 import org.neo4j.gds.wcc.WccWriteConfig;
@@ -81,7 +88,9 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 public final class CommunityProcedureFacade {
+    private final CloseableResourceRegistry closeableResourceRegistry;
     private final ProcedureReturnColumns procedureReturnColumns;
+
     private final ApproximateMaximumKCutMutateStub approximateMaximumKCutMutateStub;
     private final K1ColoringMutateStub k1ColoringMutateStub;
     private final KCoreMutateStub kCoreMutateStub;
@@ -92,6 +101,7 @@ public final class CommunityProcedureFacade {
     private final LouvainMutateStub louvainMutateStub;
     private final ModularityOptimizationMutateStub modularityOptimizationMutateStub;
     private final SccMutateStub sccMutateStub;
+    private final TriangleCountMutateStub triangleCountMutateStub;
     private final WccMutateStub wccMutateStub;
 
     private final ApplicationsFacade applicationsFacade;
@@ -101,6 +111,7 @@ public final class CommunityProcedureFacade {
     private final AlgorithmExecutionScaffolding algorithmExecutionScaffoldingForStreamMode;
 
     private CommunityProcedureFacade(
+        CloseableResourceRegistry closeableResourceRegistry,
         ProcedureReturnColumns procedureReturnColumns,
         ApproximateMaximumKCutMutateStub approximateMaximumKCutMutateStub,
         K1ColoringMutateStub k1ColoringMutateStub,
@@ -112,12 +123,14 @@ public final class CommunityProcedureFacade {
         LouvainMutateStub louvainMutateStub,
         ModularityOptimizationMutateStub modularityOptimizationMutateStub,
         SccMutateStub sccMutateStub,
+        TriangleCountMutateStub triangleCountMutateStub,
         WccMutateStub wccMutateStub,
         ApplicationsFacade applicationsFacade,
         EstimationModeRunner estimationMode,
         AlgorithmExecutionScaffolding algorithmExecutionScaffolding,
         AlgorithmExecutionScaffolding algorithmExecutionScaffoldingForStreamMode
     ) {
+        this.closeableResourceRegistry = closeableResourceRegistry;
         this.procedureReturnColumns = procedureReturnColumns;
         this.approximateMaximumKCutMutateStub = approximateMaximumKCutMutateStub;
         this.k1ColoringMutateStub = k1ColoringMutateStub;
@@ -129,6 +142,7 @@ public final class CommunityProcedureFacade {
         this.modularityOptimizationMutateStub = modularityOptimizationMutateStub;
         this.sccMutateStub = sccMutateStub;
         this.lccMutateStub = lccMutateStub;
+        this.triangleCountMutateStub = triangleCountMutateStub;
         this.wccMutateStub = wccMutateStub;
         this.applicationsFacade = applicationsFacade;
         this.estimationMode = estimationMode;
@@ -139,6 +153,7 @@ public final class CommunityProcedureFacade {
     public static CommunityProcedureFacade create(
         GenericStub genericStub,
         ApplicationsFacade applicationsFacade,
+        CloseableResourceRegistry closeableResourceRegistry,
         ProcedureReturnColumns procedureReturnColumns,
         EstimationModeRunner estimationModeRunner,
         AlgorithmExecutionScaffolding algorithmExecutionScaffolding,
@@ -162,9 +177,14 @@ public final class CommunityProcedureFacade {
             procedureReturnColumns
         );
         var sccMutateStub = new SccMutateStub(genericStub, applicationsFacade, procedureReturnColumns);
+        var triangleCountMutateStub = new TriangleCountMutateStub(
+            genericStub,
+            applicationsFacade
+        );
         var wccMutateStub = new WccMutateStub(genericStub, applicationsFacade, procedureReturnColumns);
 
         return new CommunityProcedureFacade(
+            closeableResourceRegistry,
             procedureReturnColumns,
             approximateMaximumKCutMutateStub,
             k1ColoringMutateStub,
@@ -176,6 +196,7 @@ public final class CommunityProcedureFacade {
             louvainMutateStub,
             modularityOptimizationMutateStub,
             sccMutateStub,
+            triangleCountMutateStub,
             wccMutateStub,
             applicationsFacade,
             estimationModeRunner,
@@ -1109,6 +1130,103 @@ public final class CommunityProcedureFacade {
         );
 
         return Stream.of(result);
+    }
+
+    public TriangleCountMutateStub triangleCountMutateStub() {
+        return triangleCountMutateStub;
+    }
+
+    public Stream<TriangleCountStatsResult> triangleCountStats(String graphName, Map<String, Object> configuration) {
+        var resultBuilder = new TriangleCountResultBuilderForStatsMode();
+
+        return algorithmExecutionScaffolding.runAlgorithm(
+            graphName,
+            configuration,
+            TriangleCountStatsConfig::of,
+            statsMode()::triangleCount,
+            resultBuilder
+        );
+    }
+
+    public Stream<MemoryEstimateResult> triangleCountStatsEstimate(
+        Object graphNameOrConfiguration,
+        Map<String, Object> algorithmConfiguration
+    ) {
+        var result = estimationMode.runEstimation(
+            algorithmConfiguration,
+            TriangleCountStatsConfig::of,
+            configuration -> estimationMode().triangleCount(configuration, graphNameOrConfiguration)
+        );
+
+        return Stream.of(result);
+    }
+
+    public Stream<TriangleCountStreamResult> triangleCountStream(
+        String graphName,
+        Map<String, Object> configuration
+    ) {
+        var resultBuilder = new TriangleCountResultBuilderForStreamMode();
+
+        return algorithmExecutionScaffoldingForStreamMode.runAlgorithm(
+            graphName,
+            configuration,
+            TriangleCountStreamConfig::of,
+            streamMode()::triangleCount,
+            resultBuilder
+        );
+    }
+
+    public Stream<MemoryEstimateResult> triangleCountStreamEstimate(
+        Object graphNameOrConfiguration,
+        Map<String, Object> algorithmConfiguration
+    ) {
+        var result = estimationMode.runEstimation(
+            algorithmConfiguration,
+            TriangleCountStreamConfig::of,
+            configuration -> estimationMode().triangleCount(configuration, graphNameOrConfiguration)
+        );
+
+        return Stream.of(result);
+    }
+
+    public Stream<TriangleCountWriteResult> triangleCountWrite(
+        String graphName,
+        Map<String, Object> configuration
+    ) {
+        var resultBuilder = new TriangleCountResultBuilderForWriteMode();
+
+        return algorithmExecutionScaffolding.runAlgorithm(
+            graphName,
+            configuration,
+            TriangleCountWriteConfig::of,
+            writeMode()::triangleCount,
+            resultBuilder
+        );
+    }
+
+    public Stream<MemoryEstimateResult> triangleCountWriteEstimate(
+        Object graphNameOrConfiguration,
+        Map<String, Object> algorithmConfiguration
+    ) {
+        var result = estimationMode.runEstimation(
+            algorithmConfiguration,
+            TriangleCountWriteConfig::of,
+            configuration -> estimationMode().triangleCount(configuration, graphNameOrConfiguration)
+        );
+
+        return Stream.of(result);
+    }
+
+    public Stream<TriangleStreamResult> trianglesStream(String graphName, Map<String, Object> configuration) {
+        var resultBuilder = new TrianglesResultBuilderForStreamMode(closeableResourceRegistry);
+
+        return algorithmExecutionScaffoldingForStreamMode.runAlgorithm(
+            graphName,
+            configuration,
+            TriangleCountBaseConfig::of,
+            streamMode()::triangles,
+            resultBuilder
+        );
     }
 
     public WccMutateStub wccMutateStub() {

@@ -31,6 +31,7 @@ import org.neo4j.gds.ml.pipeline.stubs.ClosenessCentralityStub;
 import org.neo4j.gds.ml.pipeline.stubs.DegreeCentralityStub;
 import org.neo4j.gds.ml.pipeline.stubs.DepthFirstSearchStub;
 import org.neo4j.gds.ml.pipeline.stubs.EigenVectorStub;
+import org.neo4j.gds.ml.pipeline.stubs.FastRPStub;
 import org.neo4j.gds.ml.pipeline.stubs.FilteredKnnStub;
 import org.neo4j.gds.ml.pipeline.stubs.FilteredNodeSimilarityStub;
 import org.neo4j.gds.ml.pipeline.stubs.HarmonicCentralityStub;
@@ -53,6 +54,7 @@ import org.neo4j.gds.ml.pipeline.stubs.SingleSourceShortestPathDeltaStub;
 import org.neo4j.gds.ml.pipeline.stubs.SingleSourceShortestPathDijkstraStub;
 import org.neo4j.gds.ml.pipeline.stubs.SpanningTreeStub;
 import org.neo4j.gds.ml.pipeline.stubs.SteinerTreeStub;
+import org.neo4j.gds.ml.pipeline.stubs.TriangleCountStub;
 import org.neo4j.gds.ml.pipeline.stubs.WccStub;
 
 /**
@@ -82,6 +84,7 @@ class StubbyHolder {
             case DFS -> new DepthFirstSearchStub();
             case Dijkstra -> new SinglePairShortestPathDijkstraStub();
             case EigenVector -> new EigenVectorStub();
+            case FastRP -> new FastRPStub();
             case FilteredKNN -> new FilteredKnnStub();
             case FilteredNodeSimilarity -> new FilteredNodeSimilarityStub();
             case HarmonicCentrality -> new HarmonicCentralityStub();
@@ -105,6 +108,8 @@ class StubbyHolder {
             case SpanningTree -> new SpanningTreeStub();
             case SteinerTree -> new SteinerTreeStub();
             case TopologicalSort -> null;
+            case TriangleCount -> new TriangleCountStub();
+            case Triangles -> null;
             case WCC -> new WccStub();
             case Yens -> new SinglePairShortestPathYensStub();
         };

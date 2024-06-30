@@ -24,10 +24,11 @@ import org.neo4j.gds.metrics.procedures.DeprecatedProceduresMetricService;
 import org.neo4j.gds.procedures.algorithms.AlgorithmsProcedureFacade;
 import org.neo4j.gds.procedures.algorithms.centrality.CentralityProcedureFacade;
 import org.neo4j.gds.procedures.algorithms.community.CommunityProcedureFacade;
+import org.neo4j.gds.procedures.algorithms.embeddings.NodeEmbeddingsProcedureFacade;
 import org.neo4j.gds.procedures.algorithms.pathfinding.PathFindingProcedureFacade;
 import org.neo4j.gds.procedures.algorithms.similarity.SimilarityProcedureFacade;
 import org.neo4j.gds.procedures.catalog.CatalogProcedureFacade;
-import org.neo4j.gds.procedures.embeddings.NodeEmbeddingsProcedureFacade;
+import org.neo4j.gds.procedures.embeddings.OldNodeEmbeddingsProcedureFacade;
 import org.neo4j.gds.procedures.misc.MiscAlgorithmsProcedureFacade;
 import org.neo4j.gds.procedures.pipelines.PipelinesProcedureFacade;
 
@@ -42,9 +43,9 @@ public class GraphDataScienceProceduresBuilder {
     private CentralityProcedureFacade centralityProcedureFacade;
     private CatalogProcedureFacade catalogProcedureFacade;
     private CommunityProcedureFacade communityProcedureFacade;
-    private org.neo4j.gds.procedures.community.CommunityProcedureFacade oldCommunityProcedureFacade;
     private MiscAlgorithmsProcedureFacade miscAlgorithmsProcedureFacade;
     private NodeEmbeddingsProcedureFacade nodeEmbeddingsProcedureFacade;
+    private OldNodeEmbeddingsProcedureFacade oldNodeEmbeddingsProcedureFacade;
     private PathFindingProcedureFacade pathFindingProcedureFacade;
     private PipelinesProcedureFacade pipelinesProcedureFacade;
     private SimilarityProcedureFacade similarityProcedureFacade;
@@ -69,11 +70,6 @@ public class GraphDataScienceProceduresBuilder {
         return this;
     }
 
-    public GraphDataScienceProceduresBuilder with(org.neo4j.gds.procedures.community.CommunityProcedureFacade oldCommunityProcedureFacade) {
-        this.oldCommunityProcedureFacade = oldCommunityProcedureFacade;
-        return this;
-    }
-
     public GraphDataScienceProceduresBuilder with(MiscAlgorithmsProcedureFacade miscAlgorithmsProcedureFacade) {
         this.miscAlgorithmsProcedureFacade = miscAlgorithmsProcedureFacade;
         return this;
@@ -84,15 +80,16 @@ public class GraphDataScienceProceduresBuilder {
         return this;
     }
 
+    public GraphDataScienceProceduresBuilder with(OldNodeEmbeddingsProcedureFacade oldNodeEmbeddingsProcedureFacade) {
+        this.oldNodeEmbeddingsProcedureFacade = oldNodeEmbeddingsProcedureFacade;
+        return this;
+    }
+
     public GraphDataScienceProceduresBuilder with(PathFindingProcedureFacade pathFindingProcedureFacade) {
         this.pathFindingProcedureFacade = pathFindingProcedureFacade;
         return this;
     }
 
-    /**
-     * @deprecated this stops working the moment I need pipelines to use algorithms. At that point: opinionated builder
-     */
-    @Deprecated
     public GraphDataScienceProceduresBuilder with(PipelinesProcedureFacade pipelinesProcedureFacade) {
         this.pipelinesProcedureFacade = pipelinesProcedureFacade;
         return this;
@@ -112,6 +109,7 @@ public class GraphDataScienceProceduresBuilder {
         var algorithmsProcedureFacade = new AlgorithmsProcedureFacade(
             centralityProcedureFacade,
             communityProcedureFacade,
+            nodeEmbeddingsProcedureFacade,
             pathFindingProcedureFacade,
             similarityProcedureFacade
         );
@@ -120,9 +118,8 @@ public class GraphDataScienceProceduresBuilder {
             log,
             algorithmsProcedureFacade,
             catalogProcedureFacade,
-            oldCommunityProcedureFacade,
             miscAlgorithmsProcedureFacade,
-            nodeEmbeddingsProcedureFacade,
+            oldNodeEmbeddingsProcedureFacade,
             pipelinesProcedureFacade,
             deprecatedProceduresMetricService
         );

@@ -26,6 +26,7 @@ import org.neo4j.gds.closeness.ClosenessCentralityMutateConfig;
 import org.neo4j.gds.config.AlgoBaseConfig;
 import org.neo4j.gds.core.CypherMapWrapper;
 import org.neo4j.gds.degree.DegreeCentralityMutateConfig;
+import org.neo4j.gds.embeddings.fastrp.FastRPMutateConfig;
 import org.neo4j.gds.harmonic.HarmonicCentralityMutateConfig;
 import org.neo4j.gds.influenceMaximization.InfluenceMaximizationMutateConfig;
 import org.neo4j.gds.k1coloring.K1ColoringMutateConfig;
@@ -52,6 +53,7 @@ import org.neo4j.gds.similarity.nodesim.NodeSimilarityMutateConfig;
 import org.neo4j.gds.spanningtree.SpanningTreeMutateConfig;
 import org.neo4j.gds.steiner.SteinerTreeMutateConfig;
 import org.neo4j.gds.triangle.LocalClusteringCoefficientMutateConfig;
+import org.neo4j.gds.triangle.TriangleCountMutateConfig;
 import org.neo4j.gds.wcc.WccMutateConfig;
 
 import java.util.function.Function;
@@ -81,6 +83,7 @@ public class ConfigurationParsersForMutateMode {
             case DFS -> DfsMutateConfig::of;
             case Dijkstra -> ShortestPathDijkstraMutateConfig::of;
             case EigenVector -> PageRankMutateConfig::of;
+            case FastRP -> FastRPMutateConfig::of;
             case FilteredKNN -> FilteredKnnMutateConfig::of;
             case FilteredNodeSimilarity -> FilteredNodeSimilarityMutateConfig::of;
             case HarmonicCentrality -> HarmonicCentralityMutateConfig::of;
@@ -104,6 +107,8 @@ public class ConfigurationParsersForMutateMode {
             case SpanningTree -> SpanningTreeMutateConfig::of;
             case SteinerTree -> SteinerTreeMutateConfig::of;
             case TopologicalSort -> null;
+            case TriangleCount -> TriangleCountMutateConfig::of;
+            case Triangles -> null;
             case WCC -> WccMutateConfig::of;
             case Yens -> ShortestPathYensMutateConfig::of;
         };

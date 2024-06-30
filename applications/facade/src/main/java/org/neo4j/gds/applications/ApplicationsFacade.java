@@ -28,6 +28,7 @@ import org.neo4j.gds.applications.algorithms.machinery.MutateNodeProperty;
 import org.neo4j.gds.applications.algorithms.machinery.MutateNodePropertyService;
 import org.neo4j.gds.applications.algorithms.machinery.ProgressTrackerCreator;
 import org.neo4j.gds.applications.algorithms.machinery.RequestScopedDependencies;
+import org.neo4j.gds.applications.algorithms.machinery.WriteContext;
 import org.neo4j.gds.applications.graphstorecatalog.CatalogBusinessFacade;
 import org.neo4j.gds.applications.graphstorecatalog.DefaultCatalogBusinessFacade;
 import org.neo4j.gds.core.loading.GraphStoreCatalogService;
@@ -50,6 +51,7 @@ public final class ApplicationsFacade {
     private final CatalogBusinessFacade catalogBusinessFacade;
     private final CentralityApplications centralityApplications;
     private final CommunityApplications communityApplications;
+    private final NodeEmbeddingApplications nodeEmbeddingApplications;
     private final PathFindingApplications pathFindingApplications;
     private final SimilarityApplications similarityApplications;
 
@@ -57,12 +59,14 @@ public final class ApplicationsFacade {
         CatalogBusinessFacade catalogBusinessFacade,
         CentralityApplications centralityApplications,
         CommunityApplications communityApplications,
+        NodeEmbeddingApplications nodeEmbeddingApplications,
         PathFindingApplications pathFindingApplications,
         SimilarityApplications similarityApplications
     ) {
         this.catalogBusinessFacade = catalogBusinessFacade;
         this.centralityApplications = centralityApplications;
         this.communityApplications = communityApplications;
+        this.nodeEmbeddingApplications = nodeEmbeddingApplications;
         this.pathFindingApplications = pathFindingApplications;
         this.similarityApplications = similarityApplications;
     }
@@ -78,7 +82,8 @@ public final class ApplicationsFacade {
         MemoryGuard memoryGuard,
         AlgorithmMetricsService algorithmMetricsService,
         ProjectionMetricsService projectionMetricsService,
-        RequestScopedDependencies requestScopedDependencies
+        RequestScopedDependencies requestScopedDependencies,
+        WriteContext writeContext
     ) {
         var catalogBusinessFacade = createCatalogBusinessFacade(
             log,
@@ -114,6 +119,7 @@ public final class ApplicationsFacade {
         var centralityApplications = CentralityApplications.create(
             log,
             requestScopedDependencies,
+            writeContext,
             algorithmEstimationTemplate,
             algorithmProcessingTemplate,
             progressTrackerCreator,
@@ -123,6 +129,17 @@ public final class ApplicationsFacade {
         var communityApplications = CommunityApplications.create(
             log,
             requestScopedDependencies,
+            writeContext,
+            algorithmEstimationTemplate,
+            algorithmProcessingTemplate,
+            progressTrackerCreator,
+            mutateNodeProperty
+        );
+
+        var nodeEmbeddingApplications = NodeEmbeddingApplications.create(
+            log,
+            requestScopedDependencies,
+            writeContext,
             algorithmEstimationTemplate,
             algorithmProcessingTemplate,
             progressTrackerCreator,
@@ -132,12 +149,13 @@ public final class ApplicationsFacade {
         var pathFindingApplications = PathFindingApplications.create(
             log,
             requestScopedDependencies,
-            algorithmProcessingTemplate,
+            writeContext,
             algorithmEstimationTemplate,
+            algorithmProcessingTemplate,
             progressTrackerCreator
         );
 
-        var writeRelationshipService = new WriteRelationshipService(log, requestScopedDependencies);
+        var writeRelationshipService = new WriteRelationshipService(log, requestScopedDependencies, writeContext);
 
         var similarityApplications = SimilarityApplications.create(
             log,
@@ -152,6 +170,7 @@ public final class ApplicationsFacade {
             .with(catalogBusinessFacade)
             .with(centralityApplications)
             .with(communityApplications)
+            .with(nodeEmbeddingApplications)
             .with(pathFindingApplications)
             .with(similarityApplications)
             .build();
@@ -205,6 +224,10 @@ public final class ApplicationsFacade {
 
     public CommunityApplications community() {
         return communityApplications;
+    }
+
+    public NodeEmbeddingApplications nodeEmbeddings() {
+        return nodeEmbeddingApplications;
     }
 
     public PathFindingApplications pathFinding() {
