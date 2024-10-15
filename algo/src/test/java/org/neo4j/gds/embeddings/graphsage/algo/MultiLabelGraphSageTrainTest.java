@@ -35,12 +35,15 @@ import org.neo4j.gds.extension.GdlExtension;
 import org.neo4j.gds.extension.GdlGraph;
 import org.neo4j.gds.extension.Inject;
 import org.neo4j.gds.extension.TestGraph;
+import org.neo4j.gds.termination.TerminatedException;
+import org.neo4j.gds.termination.TerminationFlag;
 
 import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.gds.TestGdsVersion.testGdsVersion;
@@ -102,6 +105,7 @@ class MultiLabelGraphSageTrainTest {
             config.projectedFeatureDimension().get(),
             DefaultPool.INSTANCE,
             ProgressTracker.NULL_TRACKER,
+            TerminationFlag.RUNNING_TRUE,
             testGdsVersion,
             config
         );
@@ -125,6 +129,7 @@ class MultiLabelGraphSageTrainTest {
             PROJECTED_FEATURE_SIZE,
             DefaultPool.INSTANCE,
             ProgressTracker.NULL_TRACKER,
+            TerminationFlag.RUNNING_TRUE,
             testGdsVersion,
             config
         );
@@ -157,6 +162,7 @@ class MultiLabelGraphSageTrainTest {
             featureDimension,
             DefaultPool.INSTANCE,
             ProgressTracker.NULL_TRACKER,
+            TerminationFlag.RUNNING_TRUE,
             testGdsVersion,
             graphSageTrainConfig
         );
@@ -203,6 +209,7 @@ class MultiLabelGraphSageTrainTest {
             featureDimension,
             DefaultPool.INSTANCE,
             ProgressTracker.NULL_TRACKER,
+            TerminationFlag.RUNNING_TRUE,
             testGdsVersion,
             config
         );
@@ -230,6 +237,7 @@ class MultiLabelGraphSageTrainTest {
             PROJECTED_FEATURE_SIZE,
             DefaultPool.INSTANCE,
             ProgressTracker.NULL_TRACKER,
+            TerminationFlag.RUNNING_TRUE,
             testGdsVersion,
             config
         );
@@ -259,5 +267,36 @@ class MultiLabelGraphSageTrainTest {
             )
         );
 
+    }
+
+    @Test
+    void testTermination() {
+        String modelName = "gsModel";
+
+        var graphSageTrainConfig = GraphSageTrainConfigImpl.builder()
+            .modelUser("")
+            .concurrency(1)
+            .featureProperties(List.of("numEmployees", "numIngredients", "rating", "numPurchases", "embedding"))
+            .aggregator(AggregatorType.MEAN)
+            .activationFunction(ActivationFunctionType.SIGMOID)
+            .embeddingDimension(64)
+            .modelName(modelName)
+            .relationshipWeightProperty("times")
+            .build();
+
+        var graphSageTrain = new MultiLabelGraphSageTrain(
+            weightedGraph,
+            TrainConfigTransformer.toParameters(graphSageTrainConfig),
+            PROJECTED_FEATURE_SIZE,
+            DefaultPool.INSTANCE,
+            ProgressTracker.NULL_TRACKER,
+            TerminationFlag.STOP_RUNNING,
+            testGdsVersion,
+            graphSageTrainConfig
+        );
+
+        assertThatThrownBy(graphSageTrain::compute)
+            .isInstanceOf(TerminatedException.class)
+            .hasMessageContaining("The execution has been terminated.");
     }
 }
